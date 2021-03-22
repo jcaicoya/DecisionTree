@@ -2,12 +2,12 @@
 
 #include <Parser.h>
 #include "UnitTestAccessor.h"
+#include "Common.h"
 
 
 TEST(Suite_Parser, BuildTable)
 {
-    const std::filesystem::path pathToInputFile("../resources/dummy.csv");
-    Parser::Result result = Parser::BuildTable(pathToInputFile);
+    Parser::Result result = Parser::BuildTable(Common::PathToDummyCsvFile);
     EXPECT_EQ(Parser::Result::Status::OK, result.getStatus());
     auto table = result.getTable();
     EXPECT_EQ(10, table.getNumberOfInputHeaders());
@@ -78,4 +78,13 @@ TEST(Suite_Parser, Tokenizer)
     EXPECT_EQ("one", tokens[0]);
     EXPECT_EQ("two", tokens[1]);
     EXPECT_EQ("three", tokens[2]);
+}
+
+
+TEST(Suite_Parser, NextSeparator)
+{
+    const std::string line { "  hello,world ; bye  " };
+    const std::string separators { " ;, " };
+    std::size_t nextSeparatorPosition = 0;//UnitTestAccessor::FindNextSeparator<true>(0, line, separators);
+    EXPECT_EQ(0, nextSeparatorPosition);
 }

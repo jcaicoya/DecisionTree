@@ -6,7 +6,7 @@
 CommandLine::Parameters CommandLine::BuildParameters(int argc, char *argv[])
 {
     Parameters parameters(argc);
-    for (size_t ii = 0; ii < argc; ii++)
+    for (size_t ii = 0; ii < static_cast<size_t>(argc); ii++)
     {
         parameters[ii] = argv[ii];
     }
@@ -40,6 +40,7 @@ CommandLine::Result CommandLine::ProcessParameters(CommandLine::Parameters &&inp
     }
     catch (const std::exception &e)
     {
+        std::cerr << e.what();
         PrintParsingToIntError(inputParameters[2]);
         return noOkResult;
     }

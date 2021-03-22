@@ -45,14 +45,24 @@ Parser::Result Parser::BuildTable(const std::filesystem::path pathToInputFile)
 }
 
 
-Parser::Tokens Parser::Tokenize(char *begin, const char separators[])
+Parser::Tokens Parser::Tokenize(const std::string &line, const std::string &separators)
 {
     Parser::Tokens tokens;
-    const char *token = strtok(begin, separators);
-    while (token)
+    size_t currentPosition = 0;
+    while (currentPosition < line.size())
     {
-        tokens.emplace_back(token);
-        token = strtok(NULL, separators);
+        std::size_t nextNoSeparator = FindNextSeparator<false>(currentPosition, line, separators);
+        if (nextNoSeparator < line.size())
+        {
+            std::size_t nextSeparator = FindNextSeparator<true>(nextNoSeparator + 1, line, separators);
+            std::size_t tokenLength = nextSeparator - nextNoSeparator;
+            tokens.emplace_back(line.substr(nextNoSeparator, tokenLength));
+            currentPosition = nextSeparator + 1;
+        }
+        else
+        {
+            currentPosition = line.size();
+        }
     }
 
     return tokens;
@@ -61,15 +71,13 @@ Parser::Tokens Parser::Tokenize(char *begin, const char separators[])
 
 Parser::Tokens Parser::BuildHeaderTokens(const std::string &headerLine)
 {
-    char *begin = const_cast<char *>(headerLine.c_str()) + 2;
-    const char separators[] = " ,;";
-    return Tokenize(begin, separators);
+    const std::string separators = " #,;";
+    return Tokenize(headerLine, separators);
 }
 
 
 Parser::Tokens Parser::BuildRowTokens(const std::string &rowLine)
 {
-    char *begin = const_cast<char *>(rowLine.c_str());
     const char separators[] = " ,;";
-    return Tokenize(begin, separators);
+    return Tokenize(rowLine, separators);
 }

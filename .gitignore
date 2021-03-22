@@ -31,8 +31,20 @@
 *.out
 *.app
 
+# Visual Studio
+DecisionTree.sln
+DecisionTree.vcxproj*
+
 # Directories
 /lib
 /build
 /bin
 /.vscode
+/.vs
+/Debug
+/Release
+/DecisionTree-lib
+/DecistionTree-Test
+/out
+/packages
+/x64

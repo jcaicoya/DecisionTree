@@ -34,7 +34,33 @@ private:
     using Tokens = std::vector<Token>;
     static Tokens BuildHeaderTokens(const std::string &line);
     static Tokens BuildRowTokens(const std::string &line);
-    static Tokens Tokenize(char *begin, const char separators[]);
+    static Tokens Tokenize(const std::string &line, const std::string &separators);
 
+    template <bool NextSeparator>
+    inline static size_t FindNextSeparator(size_t fromPosition, const std::string &line, const std::string &separators);
+    
     friend class UnitTestAccessor;
 };
+
+
+template <bool NextSeparator>
+inline size_t Parser::FindNextSeparator(size_t fromPosition, const std::string &line, const std::string &separators)
+{
+    bool found = false;
+    size_t nextPosition = fromPosition;
+    while (!found && nextPosition < line.size())
+    {
+        bool currentCharIsASeparator = (std::string::npos != separators.find(line[nextPosition]));
+        if ((NextSeparator && currentCharIsASeparator) ||
+            (!NextSeparator && ! currentCharIsASeparator))
+        {
+            found = true;
+        }
+        else
+        {
+            nextPosition++;
+        }
+    }
+
+    return nextPosition;
+}
