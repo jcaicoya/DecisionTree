@@ -195,7 +195,7 @@ void BuilderImpl::BuildTableFromAttribute(const Table &table,
                                           const std::string &attribute,
                                           Table &newTable)
 {
-    if (Configuration::Parallelize(table.getNumberOfInputHeaders()))
+    if (Configuration::UseParallelization(table.getNumberOfInputHeaders()))
     {
         BuildTableFromAttributeParallelized(table, attributeColumnIndex, attribute, newTable);
     }
@@ -286,6 +286,18 @@ void BuilderImpl::BuildTableFromAttributeNotParallelized(const Table &table,
 }
 
 
+void BuilderImpl::BuildChildNode(const Table &table,
+                                 size_t minPosition,
+                                 const std::string &attribute,
+                                 const std::string &message,
+                                 BuilderImpl::DecisionNodeSP &childNode)
+{
+    Table childTable;
+    BuilderImpl::BuildTableFromAttribute(table, minPosition, attribute, childTable);    
+    childNode = BuilderImpl::BuildNode(message, childTable);
+}
+
+
 BuilderImpl::DecisionNodeSP BuilderImpl::BuildNode(const std::string &message, const Table &table)
 {
     const BuilderImpl::Header &outputHeader = table.getOutputHeader();
@@ -309,13 +321,13 @@ BuilderImpl::DecisionNodeSP BuilderImpl::BuildNode(const std::string &message, c
     std::vector<ColumnSummary> inputColumnSumaries;
     inputColumnSumaries.resize(inputColumns.size());
     std::vector<std::thread> threads;
-    if (Configuration::Parallelize(inputColumnSumaries.size()))
+    if (Configuration::UseParallelization(inputColumnSumaries.size()))
     {
         for (size_t ii = 0; ii < inputColumnSumaries.size(); ii++)
         {
-            threads.emplace_back(std::thread(BuildColumnSummary,
-                                             std::cref(inputColumns[ii]),
-                                             std::ref(inputColumnSumaries[ii])));
+            threads.emplace_back(BuildColumnSummary,
+                                 std::cref(inputColumns[ii]),
+                                 std::ref(inputColumnSumaries[ii]));
         }
 
         for (size_t ii = 0; ii < inputColumnSumaries.size(); ii++)
@@ -341,19 +353,19 @@ BuilderImpl::DecisionNodeSP BuilderImpl::BuildNode(const std::string &message, c
         return BuildNodeEqualOutput(message, outputHeader, outputColumnSummary);
     }
 
-
     std::vector<double> conditionalEntropies;
     conditionalEntropies.resize(inputHeaders.size());
-    threads.clear();
-    if (Configuration::Parallelize(conditionalEntropies.size()))
+   
+    if (Configuration::UseParallelization(conditionalEntropies.size()))
     {
+        threads.clear();
         for (size_t ii = 0; ii < conditionalEntropies.size(); ii++)
         {
-            threads.emplace_back(std::thread(CalculateConditionalEntropy,
+            threads.emplace_back(CalculateConditionalEntropy,
                                              std::cref(outputColumn),
                                              std::cref(inputColumns[ii]),
                                              std::cref(inputColumnSumaries[ii]),
-                                             std::ref(conditionalEntropies[ii])));
+                                             std::ref(conditionalEntropies[ii]));
         }
 
         for (size_t ii = 0; ii < conditionalEntropies.size(); ii++)
@@ -399,14 +411,47 @@ BuilderImpl::DecisionNodeSP BuilderImpl::BuildNode(const std::string &message, c
     childMessageHeader += selectedAttributeHeader;
     childMessageHeader += " = ";
 
-    for (const auto &attribute : selectedAttributeColumnSummary._attributes)
-    {
-        std::string childMessage = childMessageHeader + attribute.first;
-        Table childTable;
-        BuilderImpl::BuildTableFromAttribute(table, minPosition, attribute.first, childTable);
 
-        BuilderImpl::DecisionNodeSP child = BuildNode(childMessage, childTable);
-        node->addChild(child);
+    if (Configuration::UseCompleteParallelization(selectedAttributeColumnSummary._attributes.size()))
+    {
+        std::vector<BuilderImpl::DecisionNodeSP> childNodes;
+        childNodes.resize(selectedAttributeColumnSummary._attributes.size());
+        
+        threads.clear();
+        
+        std::size_t position = 0;
+        for (const auto &attribute : selectedAttributeColumnSummary._attributes)
+        {
+            std::string childMessage = childMessageHeader + attribute.first;
+            threads.emplace_back(BuildChildNode,
+                                 std::cref(table),
+                                 minPosition,
+                                 std::cref(attribute.first),
+                                 std::cref(childMessage),
+                                 std::ref(childNodes[position]));    
+            position++;
+        }
+
+        for (std::size_t ii = 0; ii < threads.size(); ii++)
+        {
+            threads[ii].join();
+        }
+
+        for (const auto &child : childNodes)
+        {
+             node->addChild(child);
+        }
+    }
+    else
+    {
+        for (const auto &attribute : selectedAttributeColumnSummary._attributes)
+        {
+            std::string childMessage = childMessageHeader + attribute.first;
+            Table childTable;
+            BuilderImpl::DecisionNodeSP childNode;
+            BuildChildNode(table, minPosition, attribute.first, childMessage, childNode);
+            node->addChild(childNode);
+        }
     }
 
     return node;

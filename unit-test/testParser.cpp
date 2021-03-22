@@ -1,14 +1,18 @@
 #include <gtest/gtest.h>
 
 #include <Parser.h>
+#include "PathFinder.h"
 #include "UnitTestAccessor.h"
-#include "Common.h"
 
 
 TEST(Suite_Parser, BuildTable)
 {
-    Parser::Result result = Parser::BuildTable(Common::PathToDummyCsvFile);
-    EXPECT_EQ(Parser::Result::Status::OK, result.getStatus());
+    auto filePath = PathFinder::Find("dummy.csv");
+    ASSERT_TRUE(filePath.has_value());
+
+    const std::filesystem::path pathToInputFile = filePath.value();
+    Parser::Result result = Parser::BuildTable(pathToInputFile);
+    ASSERT_EQ(Parser::Result::Status::OK, result.getStatus());
     auto table = result.getTable();
     EXPECT_EQ(10, table.getNumberOfInputHeaders());
     EXPECT_EQ(5, table.getNumberOfRows());

@@ -6,7 +6,7 @@
 CommandLine::Parameters CommandLine::BuildParameters(int argc, char *argv[])
 {
     Parameters parameters(argc);
-    for (size_t ii = 0; ii < static_cast<size_t>(argc); ii++)
+    for (size_t ii = 0; static_cast<std::size_t>(ii) < argc; ii++)
     {
         parameters[ii] = argv[ii];
     }
@@ -17,7 +17,8 @@ CommandLine::Parameters CommandLine::BuildParameters(int argc, char *argv[])
 
 CommandLine::Result CommandLine::ProcessParameters(CommandLine::Parameters &&inputParameters)
 {
-    Result noOkResult(Result::Status::NO_OK, std::filesystem::path(), -1, false);
+
+    Result noOkResult(Result::Status::NO_OK, std::filesystem::path(), -1, Configuration::ParallelizationMode::None);
 
     if (NumberOfRequiredParameters != inputParameters.size() &&
         NumberOfOptionalParameters != inputParameters.size())
@@ -40,26 +41,29 @@ CommandLine::Result CommandLine::ProcessParameters(CommandLine::Parameters &&inp
     }
     catch (const std::exception &e)
     {
-        std::cerr << e.what();
         PrintParsingToIntError(inputParameters[2]);
         return noOkResult;
     }
 
-    bool parallelize = false;
+    Configuration::ParallelizationMode parallelizationMode = Configuration::ParallelizationMode::None;
     if (NumberOfOptionalParameters == inputParameters.size())
     {
-        if ("-p" != inputParameters[3])
+        if ("-pi" == inputParameters[3])
+        {
+            parallelizationMode = Configuration::ParallelizationMode::Inner;
+        }
+        else if ("-pa" == inputParameters[3])
+        {
+            parallelizationMode = Configuration::ParallelizationMode::Complete;
+        }
+        else
         {
             PrintIncorrectOptionalParameter(inputParameters[3]);
             return noOkResult;
         }
-        else
-        {
-            parallelize = true;
-        }
     }
 
-    return Result(Result::Status::OK, std::move(pathToInputFile), outputAttibuteIndex, parallelize);
+    return Result(Result::Status::OK, std::move(pathToInputFile), outputAttibuteIndex, parallelizationMode);
 }
 
 
@@ -67,7 +71,7 @@ void CommandLine::PrintIncorrectNumberOfParameters(std::size_t numberOfParameter
 {
     std::cout << "Incorrect number of parameters: provided " << numberOfParameters << ", required "
               << NumberOfRequiredParameters << '\n';
-    std::cout << "Usage: dectree input-file output-attribute-index [-p to parallelize execution]\n";
+    std::cout << "Usage: dectree input-file output-attribute-index [-pi|-pa to parallelize execution in inner or all mode]\n";
 }
 
 
@@ -85,5 +89,5 @@ void CommandLine::PrintParsingToIntError(const std::string_view &number)
 
 void CommandLine::PrintIncorrectOptionalParameter(const std::string_view &optionalParameter)
 {
-    std::cout << "Optional parameter has to be -p and it is " << optionalParameter << '\n';
+    std::cout << "Optional parameter has to be -pi or -pa and it is " << optionalParameter << '\n';
 }

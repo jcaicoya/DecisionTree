@@ -213,7 +213,7 @@ TEST(BuilderSuiteImpl, BuildColumnFromAttribute)
 }
 
 
-void executeBuildTableFromAttribute()
+Table buildTable()
 {
     BuilderImpl::Header outputHeader {"Y"};
     BuilderImpl::Column outputColumn {"1", "1", "1", "1", "1", "1", "1", "0", "0", "0"};
@@ -221,11 +221,19 @@ void executeBuildTableFromAttribute()
     BuilderImpl::Column attributeColumn {"A", "A", "A", "A", "B", "B", "B", "B", "C", "C"};
     BuilderImpl::Header inputHeader {"X2"};
     BuilderImpl::Column inputColumn {"X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", "X"};
-    Table fromTable;
-    fromTable.setOutputHeaderAndColumn(outputHeader, std::move(outputColumn));
-    fromTable.addInputHeaderAndColumn(attributeHeader, std::move(attributeColumn));
-    fromTable.addInputHeaderAndColumn(inputHeader, std::move(inputColumn));
+    
+    Table table;
+    table.setOutputHeaderAndColumn(outputHeader, std::move(outputColumn));
+    table.addInputHeaderAndColumn(attributeHeader, std::move(attributeColumn));
+    table.addInputHeaderAndColumn(inputHeader, std::move(inputColumn));
 
+    return table;
+}
+
+
+void executeBuildTableFromAttribute()
+{
+    Table fromTable = buildTable();
     std::string attribute = "A";
     Table toTable;
     BuilderImpl::BuildTableFromAttribute(fromTable, 0, attribute, toTable);
@@ -249,25 +257,18 @@ void executeBuildTableFromAttribute()
 
 TEST(BuilderSuiteImpl, BuildTableFromAttribute)
 {
-    Configuration::SetParallelize(false);
+    Configuration::SetParallelize(Configuration::ParallelizationMode::None);
     executeBuildTableFromAttribute();
-    Configuration::SetParallelize(true);
+    Configuration::SetParallelize(Configuration::ParallelizationMode::Inner);
+    executeBuildTableFromAttribute();
+    Configuration::SetParallelize(Configuration::ParallelizationMode::Complete);
     executeBuildTableFromAttribute();
 }
 
 
 void executeBuildNode()
 {
-    BuilderImpl::Header outputHeader {"Y"};
-    BuilderImpl::Column outputColumn {"1", "1", "1", "1", "1", "1", "1", "0", "0", "0"};
-    BuilderImpl::Header attributeHeader {"X1"};
-    BuilderImpl::Column attributeColumn {"A", "A", "A", "A", "B", "B", "B", "B", "C", "C"};
-    BuilderImpl::Header inputHeader {"X2"};
-    BuilderImpl::Column inputColumn {"X", "Y", "Z", "X", "Y", "Z", "X", "Y", "Z", "X"};
-    Table table;
-    table.setOutputHeaderAndColumn(outputHeader, std::move(outputColumn));
-    table.addInputHeaderAndColumn(attributeHeader, std::move(attributeColumn));
-    table.addInputHeaderAndColumn(inputHeader, std::move(inputColumn));
+    Table table = buildTable();
 
     std::string message {"root"};
     BuilderImpl::DecisionNodeSP rootNode = BuilderImpl::BuildNode(message, table);
@@ -310,8 +311,10 @@ void executeBuildNode()
 
 TEST(BuilderSuiteImpl, BuildNode)
 {
-    Configuration::SetParallelize(false);
+    Configuration::SetParallelize(Configuration::ParallelizationMode::None);
     executeBuildNode();
-    Configuration::SetParallelize(true);
+    Configuration::SetParallelize(Configuration::ParallelizationMode::Inner);
     executeBuildNode();
+    //Configuration::SetParallelize(Configuration::ParallelizationMode::Complete);
+    //executeBuildNode();
 }

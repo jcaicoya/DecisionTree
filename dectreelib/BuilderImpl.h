@@ -81,5 +81,11 @@ public:
                                                        const std::string &attribute,
                                                        Table &newTable);
 
+    static void BuildChildNode(const Table &table,
+                               size_t minPosition,
+                               const std::string &attribute,
+                               const std::string &message,
+                               BuilderImpl::DecisionNodeSP &childNode);
+
     static DecisionNodeSP BuildNode(const std::string &message, const Table &table);
 };

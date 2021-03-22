@@ -3,6 +3,7 @@
 #include <vector>
 #include <string_view>
 #include <filesystem>
+#include "Configuration.h"
 
 
 class CommandLine
@@ -16,23 +17,23 @@ public:
         Result(Status status,
                std::filesystem::path &&pathToInputFileName,
                size_t outputAttributeIndex,
-               bool parallelize)
+               Configuration::ParallelizationMode parallelizationMode)
           : _status(status)
           , _pathToInputFileName(pathToInputFileName)
           , _outputAttibuteIndex(outputAttributeIndex)
-          , _parallelize(parallelize)
+          , _parallelizationMode(parallelizationMode)
         {}
 
         Status getStatus() const { return _status; }
         std::filesystem::path getPathToInputFileName() const { return std::move(_pathToInputFileName); }
         size_t getOutputAttributeIndex() const { return _outputAttibuteIndex; }
-        bool getParallelize() const { return _parallelize; }
+        Configuration::ParallelizationMode getParallelizationMode() const { return _parallelizationMode; }
 
     private:
         Status _status;
         std::filesystem::path _pathToInputFileName;
         size_t _outputAttibuteIndex;
-        bool _parallelize;
+        Configuration::ParallelizationMode _parallelizationMode;
     };
 
     using Parameters = std::vector<std::string_view>;

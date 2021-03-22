@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    Configuration::SetParallelize(commandLineResult.getParallelize());
+    Configuration::SetParallelize(commandLineResult.getParallelizationMode());
 
     auto start = std::chrono::high_resolution_clock::now();
     Builder::Result result = Builder::Build(std::move(table));
@@ -52,15 +52,17 @@ int main(int argc, char *argv[])
     std::cout << "Building tree time: "
               << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
               << " milliseconds ";
-    if (Configuration::GetParallelize())
+    switch (Configuration::GetParallelizationMode())
     {
-        std::cout << "with";
+        case Configuration::ParallelizationMode::Inner:
+            std::cout << " using inner parallelization\n";
+            break;
+        case Configuration::ParallelizationMode::Complete:
+            std::cout << " using complete parallelization\n";
+            break;
+        default:
+            std::cout << " without parallelization\n";
     }
-    else
-    {
-        std::cout << "without";
-    }
-    std::cout << " parallelization\n";
 
 
     if (Builder::Result::Status::NO_OK == result.getStatus())
